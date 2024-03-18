@@ -1,0 +1,1068 @@
+Program.Sub.ScreenSU.Start
+Gui.FrmKA..Create(DashForm)
+Gui.FrmKA..Caption("Open Job Review 6262")
+Gui.FrmKA..Size(1024,720)
+Gui.FrmKA..MinX(0)
+Gui.FrmKA..MinY(0)
+Gui.FrmKA..Position(0,0)
+Gui.FrmKA..AlwaysOnTop(False)
+Gui.FrmKA..FontName("Tahoma")
+Gui.FrmKA..FontSize(8.25)
+Gui.FrmKA..ControlBox(True)
+Gui.FrmKA..MaxButton(True)
+Gui.FrmKA..MinButton(True)
+Gui.FrmKA..MousePointer(0)
+Gui.FrmKA..Moveable(True)
+Gui.FrmKA..Sizeable(True)
+Gui.FrmKA..ShowInTaskBar(True)
+Gui.FrmKA..TitleBar(True)
+Gui.FrmKA..BarHelpButton(True,"Open Job Review 6262","This project is a modification of project 4564","",1.0.0,"1/31/2021 12:00:00 AM","Dasboards",0,0,False)
+Gui.FrmKA..BarRefreshButton(True)
+Gui.FrmKA..Event(UnLoad,FrmKA_UnLoad)
+Gui.FrmKA..BarExportButton(True)
+Gui.FrmKA..Event(ExportClick,FrmKA_ExportClick)
+Gui.FrmKA..Event(RefreshClick,FrmKA_RefreshClick)
+Gui.FrmKA.fr1.Create(Frame)
+Gui.FrmKA.fr1.Enabled(True)
+Gui.FrmKA.fr1.Visible(True)
+Gui.FrmKA.fr1.Zorder(0)
+Gui.FrmKA.fr1.Size(1024,654)
+Gui.FrmKA.fr1.Position(0,0)
+Gui.FrmKA.fr1.Caption("")
+Gui.FrmKA.fr1.FontName("Tahoma")
+Gui.FrmKA.fr1.FontSize(8.25)
+Gui.FrmKA.fr1.Dock(5)
+Gui.FrmKA.GsGCKA.Create(GsGridControl)
+Gui.FrmKA.GsGCKA.Enabled(True)
+Gui.FrmKA.GsGCKA.Visible(True)
+Gui.FrmKA.GsGCKA.Zorder(0)
+Gui.FrmKA.GsGCKA.Size(1018,633)
+Gui.FrmKA.GsGCKA.Position(3,18)
+Gui.FrmKA.GsGCKA.Parent("fr1")
+Gui.FrmKA.GsGCKA.Anchor(15)
+Gui.FrmKA.GsGCKA.Event(RowCellClick,GsGCKA_RowCellClick)
+Gui.FrmKA.GsGCKA.Event(CellValueChanged,GsGCKA_CellValueChanged)
+Gui.FrmKA.lblTime.Create(Label,"",True,1,13,0,2,2,True,0,"Tahoma",8.25,,0,0)
+Gui.FrmKA.lblTime.BorderStyle(0)
+Gui.FrmKA.lbl1.Create(Label,"Please wait...",True,66,13,0,474,3,True,0,"Tahoma",8.25,,0,0)
+Gui.FrmKA.lbl1.BorderStyle(0)
+Gui.FrmKA.lbl1.Anchor(1)
+Gui.FrmKA.lbl1.ForeColor(255)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+V.Global.bLoadData.Declare(Boolean)
+v.Global.sJob.Declare
+v.Global.sSuf.Declare
+v.Global.sSeq.Declare
+v.Global.sPart.Declare
+v.Global.sLoc.Declare
+v.Global.iRowIndex.Declare
+v.Global.bEditWO.Declare
+v.Global.sTime.Declare
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+Function.Intrinsic.UI.UsePixels ' Allows you to use Pixels instead of Twips throughout
+
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	V.Local.bEditGrp.Declare	
+	
+	'Check User Permissions
+	F.Global.Security.IsInGroup(v.Caller.User,"EditWO",v.Global.bEditWO)
+		
+	F.ODBC.Connection!con.OpenCompanyConnection(600)
+'	F.ODBC.Connection!CON.ExecuteAndReturn("SELECT count(*)FROM GAB_4169_WO_NOTES;",v.Local.sError)	
+'	f.Intrinsic.UI.Msgbox(v.Local.sError)
+'	
+'	F.ODBC.Connection!CON.ExecuteAndReturn("SELECT count(*) FROM V_WO_USER_FLDS;",v.Local.sError)
+'	f.Intrinsic.UI.Msgbox(v.Local.sError)
+'	
+'	F.ODBC.Connection!CON.ExecuteAndReturn("SELECT count(*) FROM v_job_header;",v.Local.sError)
+'	f.Intrinsic.UI.Msgbox(v.Local.sError)	
+	
+	
+	f.Intrinsic.Control.CallSub(checkTable)
+	f.Intrinsic.Control.CallSub(CreateContextMenu)
+	Gui.frmKA..Show
+	F.Intrinsic.Control.CallSub(FrmKA_RefreshClick)		
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: GCG_6262_OpenJob.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.End 
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.FrmKA_UnLoad.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+		
+	F.Intrinsic.Control.If(V.Global.bLoadData)
+		F.Intrinsic.Control.CallSub(Serialize)
+	F.Intrinsic.Control.EndIf
+		
+	F.ODBC.Connection!con.Close
+	F.Intrinsic.Control.End
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: GCG_6262_OpenJob.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.End 
+F.Intrinsic.Control.EndTry
+Program.Sub.FrmKA_UnLoad.End
+
+Program.Sub.LockScreen.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	'Gui.FrmKA.GsGCKA.Visible(False)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: GCG_6262_OpenJob.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.End 
+F.Intrinsic.Control.EndTry
+Program.Sub.LockScreen.End
+Program.Sub.enableScreen.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	'Gui.FrmKA.GsGCKA.Visible(True)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: GCG_6262_OpenJob.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.End 
+F.Intrinsic.Control.EndTry
+Program.Sub.enableScreen.End
+
+Program.Sub.checkTable.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	v.Local.bTable.Declare(Boolean)
+
+	F.ODBC.Connection!con.TableExists("GAB_4169_WO_NOTES",V.Local.bTable)
+	F.Intrinsic.Control.If(v.Local.bTable,=,false)
+		F.ODBC.Connection!Con.Execute("CREATE TABLE GAB_4169_WO_NOTES(JOB CHAR(6),SUFFIX CHAR(3),NOTES LONGVARCHAR);")
+	F.Intrinsic.Control.EndIf
+
+'	f.ODBC.Connection!con.Execute("Drop INDEX GAB_4169_WO_NOTES01")
+'	f.ODBC.Connection!con.Execute("Drop INDEX GAB_4169_WO_NOTES02")
+	
+'	f.Intrinsic.Control.CallSub("Check_Index","sTable","GAB_4169_WO_NOTES","sIndex","GAB_4169_WO_NOTES01")
+'	f.Intrinsic.Control.If(v.Args.bExist,=,False)
+'		f.ODBC.Connection!con.Execute("CREATE INDEX GAB_4169_WO_NOTES01 ON GAB_4169_WO_NOTES (Job, Suffix);")
+'	f.Intrinsic.Control.EndIf
+'	
+'	f.Intrinsic.Control.CallSub("Check_Index","sTable","GAB_4169_WO_NOTES","sIndex","GAB_4169_WO_NOTES02")
+'	f.Intrinsic.Control.If(v.Args.bExist,=,False)
+'		f.ODBC.Connection!con.Execute("CREATE INDEX GAB_4169_WO_NOTES02 ON GAB_4169_WO_NOTES (Job,Suffix);")
+'	f.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: GCG_6262_OpenJob.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.End 
+F.Intrinsic.Control.EndTry
+Program.Sub.checkTable.End
+
+Program.Sub.Check_Index.Start
+f.Intrinsic.Control.Try
+	v.Local.sError.Declare
+	v.Local.sSQL.Declare
+	v.Local.sRet.Declare
+	v.Local.bExist.Declare
+	
+	f.Intrinsic.String.Build("Select Xf$Name As TableName,F1.XE$Name As FieldName,F1.Xe$DataType as DataType FROM X$File INNER JOIN X$Field F1 On F1.XE$File = XF$ID WHERE Xf$Name = '{0}' and F1.XE$Name = '{1}'",v.Args.sTable,v.Args.sIndex,v.Local.sSQL)
+	f.ODBC.Connection!con.ExecuteAndReturn(v.Local.sSQL,v.Local.sRet)
+	f.Intrinsic.Control.If(v.Ambient.ExecuteAndReturnEOF.Not)
+		v.Local.bExist.Set(True)
+	f.Intrinsic.Control.EndIf
+	f.Intrinsic.Variable.AddRV("bExist",v.Local.bExist)
+
+F.Intrinsic.Control.Catch
+    F.Intrinsic.String.Build("Project: GCG_6218_EDI_Compare.g2u{0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+    F.Intrinsic.UI.Msgbox(V.Local.sError)
+	'if any error, assume the index exists
+	f.Intrinsic.Variable.AddRV("bExist",True)
+F.Intrinsic.Control.EndTry
+Program.Sub.Check_Index.End
+
+Program.Sub.FrmKA_RefreshClick.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+		
+	gui.FrmKA.lbl1.ForeColor(v.Color.Red)
+	gui.FrmKA.lbl1.Text("Please wait...")
+
+	F.Intrinsic.Control.If(V.Global.bLoadData)
+		F.Intrinsic.Control.CallSub(Serialize)
+		gui.FrmKA.GsGCKA.ClearRows("gvKA")
+	F.Intrinsic.Control.EndIf	
+	f.Intrinsic.Control.CallSub(loaddtdvKA)
+	gui.FrmKA.lbl1.Text(v.Global.sTime)
+	gui.FrmKA.lbl1.ForeColor(v.Color.Blue)
+	
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: GCG_6262_OpenJob.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.End 
+F.Intrinsic.Control.EndTry
+Program.Sub.FrmKA_RefreshClick.End
+
+Program.Sub.loaddtdvKA.Start
+F.Intrinsic.Control.Try
+	v.Local.sError.Declare
+	v.Local.sFile.Declare
+	v.Local.bEx.Declare
+	v.Local.sRet.Declare
+	
+	f.Intrinsic.String.Build("{0}\6262_dtKA_{1}.xml",v.Caller.GasDir,v.Caller.CompanyCode,v.Local.sFile)	
+	f.Intrinsic.File.Exists(v.Local.sFile,v.Local.bEx)
+	f.Intrinsic.Control.If(v.Local.bEx.Not)
+		f.Intrinsic.UI.Msgbox("No file found from Online Update. Please verify if Online Update is running and hook 38130 is attached to GCG_6262_OU.g2u ASYNCHRONOUS, and/or check table GCG_6262_Error.","No File found")
+		f.Intrinsic.Control.ExitSub
+	f.Intrinsic.Control.EndIf
+	
+	f.Intrinsic.File.GetFileDateTime(v.Local.sFile,v.Local.sRet)
+	f.Intrinsic.String.Build("Process Time: {0}",v.Local.sRet,v.Global.sTime)
+	gui.FrmKA.lblTime.Text(v.Local.sRet)
+	
+	f.Intrinsic.Control.If(v.DataTable.dtKA.Exists)
+		f.Data.Datatable.Close("dtKA")
+	f.Intrinsic.Control.EndIf	
+	F.Data.DataTable.CreateFromXML("dtKA",v.Local.sFile,True)
+	
+	F.Data.Dictionary.CreateFromSQL("dNotes","con","SELECT Job + Suffix AS JBSF, NOTES FROM GAB_4169_WO_NOTES;")
+	F.Data.Dictionary.SetDefaultReturn("dNotes","")
+	F.Data.DataTable.FillFromDictionary("dtKA","dNotes","JBSF","NOTES")
+	F.Data.Dictionary.Close("dNotes")
+
+	F.Data.Dictionary.CreateFromSQL("dNotes","con","SELECT Job + Suffix AS JBSF, RTRIM(USER_6) AS NOTES FROM V_WO_USER_FLDS;")
+	F.Data.Dictionary.SetDefaultReturn("dNotes","")
+	F.Data.DataTable.FillFromDictionary("dtKA","dNotes","JBSF","WO_NOTE")
+	F.Data.Dictionary.Close("dNotes")	
+	
+	F.Data.Dictionary.CreateFromSQL("dHold","con","SELECT Job + Suffix AS JBSF, CASE WHEN A.FLAG_HOLD = 'Y' THEN CONVERT(1,SQL_BIT) WHEN A.FLAG_HOLD = 'N' THEN CONVERT(0,SQL_BIT) ELSE CONVERT(0,SQL_BIT) END AS FLAG_HOLD FROM v_Job_Header A")
+	F.Data.Dictionary.SetDefaultReturn("dHold",False)
+	F.Data.DataTable.FillFromDictionary("dtKA","dHold","JBSF","Flag_Hold")
+	F.Data.Dictionary.Close("dHold")	
+	
+	F.Data.DataView.Create("dtKA","dvKA")	
+	
+	'For demo
+	'f.Data.Datatable.SetValue("dtKA",0,"PartDoc","Docs")
+	
+	F.Intrinsic.Control.CallSub(loadgvka)
+	F.Intrinsic.Control.CallSub(Deserialize)
+	V.Global.bLoadData.Set(True)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: GCG_6262_OpenJob.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.End 
+F.Intrinsic.Control.EndTry
+Program.Sub.loaddtdvKA.End
+
+Program.Sub.loadGVKA.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	v.Local.iCnt.Declare
+	v.Local.iNum.Declare
+	v.Local.sTemp.Declare
+	v.Local.iCol.Declare
+	v.Local.iCycle.Declare
+	V.Local.sRegistry.Declare
+	
+	Gui.FrmKA.GsGCKA.AddGridViewFromDataView("gvKA","dtKA","dvKA")
+	
+	Gui.FrmKA.GsGCKA.SetGridViewProperty("gvKA","AllowSort",True)
+	Gui.FrmKA.GsGCKA.SetGridViewProperty("gvKA","AllowFilter",True)
+	Gui.FrmKA.GsGCKA.SetGridViewProperty("gvKA","OptionsDetailShowDetailTabs",False)
+	Gui.FrmKA.GsGCKA.SetGridViewProperty("gvKA","OptionsViewShowGroupPanel",True)
+	Gui.FrmKA.GsGCKA.SetGridViewProperty("gvKA","EnableAppearanceOddRow",True)
+	Gui.FrmKA.GsGCKA.SetGridViewProperty("gvKA","AllowColumnResizing",True)
+	Gui.FrmKA.GsGCKA.SetGridViewProperty("gvKA","OptionsViewColumnAutoWidth",False)
+	Gui.FrmKA.GsGCKA.SetGridViewProperty("gvKA","OptionsViewShowAutoFilterRow",True)
+	Gui.FrmKA.GsGCKA.SetGridViewProperty("gvKA","ColumnPanelRowHeight","40")
+	
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","JBSF","VISIBLE",False)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PartLoc","VISIBLE",False)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","ParentJS","VISIBLE",False)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","SOValue1","VISIBLE",False)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","SOValue2","VISIBLE",False)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","StillOpen","VISIBLE",False)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","ParentPartLoc","VISIBLE",False)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","ParentPartLoc","VISIBLE",False)
+	
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","JBSF","AllowShowHide",False)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PartLoc","AllowShowHide",False)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","ParentJS","AllowShowHide",False)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","SOValue1","AllowShowHide",False)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","SOValue2","AllowShowHide",False)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","StillOpen","AllowShowHide",False)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","ParentPartLoc","AllowShowHide",False)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","ParentPartLoc","AllowShowHide",False)		
+	
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","LOCATION","VISIBLE",False)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PARENT_WO","VISIBLE",False)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PARENT_SUFFIX_PARENT","VISIBLE",False)	
+	
+	'for each of these column properties, set product line and router desc to be like the others
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","JOB","fixed","left")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","SUFFIX","fixed","left")	
+	
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","FLAG_WO_PRTD","Caption","Printed")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","NAME_cUSTOMER","Caption","Customer Name")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","JOB","Caption","Job")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","SUFFIX","Caption","Suf")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PRODUCT_LINE","Caption","PL")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PRIORITY","Caption","Priority")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","CUSTOMER_PO","Caption","PO Number")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PART","Caption","Part (F/G)")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","DESCRIPTION","Caption","Description")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","RTR_DESC","Caption","Router Description")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PODT","Caption","PO Dt")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","QTY_LEFT","Caption","Qty Rem")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","DATE_DUE","Caption","WO Due Dt")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","One","Caption","1")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Two","Caption","2")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Three","Caption","3")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Four","Caption","4")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Five","Caption","5")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Six","Caption","6")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Seven","Caption","7")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Eight","Caption","8")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Nine","Caption","9")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Ten","Caption","10")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","OneRuntime","Caption","Runtime 1")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","TwoRuntime","Caption","Runtime 2")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","ThreeRuntime","Caption","Runtime 3")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","FourRuntime","Caption","Runtime 4")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","FiveRuntime","Caption","Runtime 5")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","SixRuntime","Caption","Runtime 6")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","SevenRuntime","Caption","Runtime 7")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","EightRuntime","Caption","Runtime 8")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","NineRuntime","Caption","Runtime 9")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","TenRuntime","Caption","Runtime 10")	
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","seqRes","Caption","First Material")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","WO_NOTE","Caption","Work Order Note(70 Characters)")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","NOTES","Caption","Notes")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Location","Caption","Location")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Scheduled_due_Date","Caption","Sched Due Date")
+	
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Flag_Hold","Caption","On Hold")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Date_Opened","Caption","Open Dt")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","ParentPart","Caption","Parent Part")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","ParentLocation","Caption","Parent Loc")		
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","SOLine","Caption","Sales Order Line")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","SOValue","Caption","Value")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","LastDate","Caption","Last Dt")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","DaysIdle","Caption","Days Idle")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Parent_suffix_Parent","Caption","Parent Suffix")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Parent_WO","Caption","Parent Job")	
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PartDoc","Caption","Part Doc")
+	
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","FLAG_WO_PRTD","MinWidth","25")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","NAME_cUSTOMER","MinWidth","25")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","JOB","MinWidth","25")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","SUFFIX","MinWidth","25")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PRODUCT_LINE","MinWidth","25")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PRIORITY","MinWidth","25")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","CUSTOMER_PO","MinWidth","25")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PART","MinWidth","25")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","DESCRIPTION","MinWidth","25")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","RTR_DESC","MinWidth","25")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PODT","MinWidth","25")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","QTY_LEFT","MinWidth","25")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","DATE_DUE","MinWidth","25")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","One","MinWidth","25")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Two","MinWidth","25")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Three","MinWidth","25")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Four","MinWidth","25")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Five","MinWidth","25")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Six","MinWidth","25")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Seven","MinWidth","25")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Eight","MinWidth","25")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Nine","MinWidth","25")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Ten","MinWidth","25")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","seqRes","MinWidth","25")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","WO_NOTE","MinWidth","25")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","NOTES","MinWidth","25")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Scheduled_due_Date","MinWidth","25")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PartDoc","MinWidth","25")
+	
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","FLAG_WO_PRTD","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","NAME_cUSTOMER","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","JOB","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","SUFFIX","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PRODUCT_LINE","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PRIORITY","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","CUSTOMER_PO","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PART","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","DESCRIPTION","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","RTR_DESC","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PODT","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","QTY_LEFT","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","DATE_DUE","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","One","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Two","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Three","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Four","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Five","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Six","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Seven","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Eight","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Nine","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Ten","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","OneRuntime","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","TwoRuntime","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","ThreeRuntime","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","FourRuntime","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","FiveRuntime","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","SixRuntime","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","SevenRuntime","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","EightRuntime","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","NineRuntime","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","TenRuntime","HeaderFontBold",True)		
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","seqRes","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","WO_NOTE","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","NOTES","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Parent_WO","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Parent_suffix_Parent","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","JBSF","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Location","HeaderFontBold",True)	
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Scheduled_due_Date","HeaderFontBold",True)	
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PartDoc","HeaderFontBold",True)	
+	
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Flag_Hold","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Date_Opened","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","ParentPart","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","ParentLocation","HeaderFontBold",True)		
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","SOLine","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","SOValue","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","LastDate","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","DaysIdle","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Parent_suffix_Parent","HeaderFontBold",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Parent_WO","HeaderFontBold",True)	
+	
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","FLAG_WO_PRTD","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","NAME_cUSTOMER","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","JOB","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","SUFFIX","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PRODUCT_LINE","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PRIORITY","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","CUSTOMER_PO","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PART","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","DESCRIPTION","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","RTR_DESC","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PODT","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","QTY_LEFT","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","DATE_DUE","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","One","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Two","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Three","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Four","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Five","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Six","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Seven","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Eight","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Nine","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Ten","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","OneRuntime","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","TwoRuntime","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","ThreeRuntime","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","FourRuntime","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","FiveRuntime","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","SixRuntime","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","SevenRuntime","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","EightRuntime","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","NineRuntime","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","TenRuntime","HeaderWordWrap","Wrap")	
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","seqRes","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","WO_NOTE","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","NOTES","HeaderWordWrap","Wrap")		
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Parent_WO","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Parent_suffix_Parent","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","JBSF","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Location","HeaderWordWrap","Wrap")	
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Scheduled_due_Date","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PartDoc","HeaderWordWrap","Wrap")
+	
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Flag_Hold","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Date_Opened","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","ParentPart","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","ParentLocation","HeaderWordWrap","Wrap")		
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","SOLine","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","SOValue","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","LastDate","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","DaysIdle","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Parent_suffix_Parent","HeaderWordWrap","Wrap")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Parent_WO","HeaderWordWrap","Wrap")
+	
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","FLAG_WO_PRTD","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","NAME_cUSTOMER","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","JOB","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","SUFFIX","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PRODUCT_LINE","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PRIORITY","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","CUSTOMER_PO","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PART","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","DESCRIPTION","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","RTR_DESC","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PODT","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","QTY_LEFT","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","DATE_DUE","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","One","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Two","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Three","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Four","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Five","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Six","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Seven","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Eight","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Nine","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Ten","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","OneRuntime","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","TwoRuntime","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","ThreeRuntime","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","FourRuntime","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","FiveRuntime","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","SixRuntime","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","SevenRuntime","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","EightRuntime","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","NineRuntime","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","TenRuntime","HeaderVAlignment","Top")	
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","seqRes","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","WO_NOTE","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","NOTES","HeaderVAlignment","Top")		
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Parent_WO","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Parent_suffix_Parent","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","JBSF","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Location","HeaderVAlignment","Top")	
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Scheduled_due_Date","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PartDoc","HeaderVAlignment","Top")
+
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Flag_Hold","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Date_Opened","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","ParentPart","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","ParentLocation","HeaderVAlignment","Top")		
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","SOLine","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","SOValue","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","LastDate","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","DaysIdle","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Parent_suffix_Parent","HeaderVAlignment","Top")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Parent_WO","HeaderVAlignment","Top")	
+	
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","FLAG_WO_PRTD","HEADERHALIGNMENT","Center")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","JOB","HEADERHALIGNMENT","Center")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","SUFFIX","HEADERHALIGNMENT","Center")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PRODUCT_LINE","HEADERHALIGNMENT","Center")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PRIORITY","HEADERHALIGNMENT","Center")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PODT","HEADERHALIGNMENT","Center")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","QTY_LEFT","HEADERHALIGNMENT","far")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","DATE_DUE","HEADERHALIGNMENT","Center")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","One","HEADERHALIGNMENT","Center")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Two","HEADERHALIGNMENT","Center")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Three","HEADERHALIGNMENT","Center")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Four","HEADERHALIGNMENT","Center")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Five","HEADERHALIGNMENT","Center")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Six","HEADERHALIGNMENT","Center")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Seven","HEADERHALIGNMENT","Center")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Eight","HEADERHALIGNMENT","Center")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Nine","HEADERHALIGNMENT","Center")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Ten","HEADERHALIGNMENT","Center")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","seqRes","HEADERHALIGNMENT","Center")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","OneRuntime","HEADERHALIGNMENT","far")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","TwoRuntime","HEADERHALIGNMENT","far")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","ThreeRuntime","HEADERHALIGNMENT","far")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","FourRuntime","HEADERHALIGNMENT","far")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","FiveRuntime","HEADERHALIGNMENT","far")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","SixRuntime","HEADERHALIGNMENT","far")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","SevenRuntime","HEADERHALIGNMENT","far")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","EightRuntime","HEADERHALIGNMENT","far")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","NineRuntime","HEADERHALIGNMENT","far")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","TenRuntime","HEADERHALIGNMENT","far")	
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Scheduled_due_Date","HEADERHALIGNMENT","center")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Flag_hold","HEADERHALIGNMENT","center")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PartDoc","HEADERHALIGNMENT","center")
+
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","LastDate","HEADERHALIGNMENT","Center")	
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Date_Opened","HEADERHALIGNMENT","center")
+	
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","FLAG_WO_PRTD","CELLHALIGNMENT","CENTER")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","JOB","CELLHALIGNMENT","CENTER")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","SUFFIX","CELLHALIGNMENT","CENTER")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PODT","CELLHALIGNMENT","CENTER")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","DATE_DUE","CELLHALIGNMENT","CENTER")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Scheduled_due_Date","CELLHALIGNMENT","CENTER")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Product_line","CELLHALIGNMENT","CENTER")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Date_Opened","CELLHALIGNMENT","CENTER")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","LastDate","CELLHALIGNMENT","CENTER")	
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PartDoc","CELLHALIGNMENT","CENTER")
+	
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","JOB","CellForeColor","Blue")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","SUFFIX","CellForeColor","Blue")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PART","CellForeColor","Blue")
+	
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","NOTES","CellBackColor","LightYellow")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","WO_NOTE","CellBackColor","LightYellow")
+	
+	'Modifications added for project 6262 to hide specific columns
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","CUSTOMER_PO","Visible",False)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PODT","Visible",false)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","seqRes","Visible",false)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","DESCRIPTION","Visible",False)
+	
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","WO_NOTE","ReadOnly",False)
+	Gui.FrmKA.GsGCKA.setColumnProperty("gvKA","NOTES","READONLY",false)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","FLAG_WO_PRTD","AllowEdit",false)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","NAME_cUSTOMER","AllowEdit",false)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","JOB","AllowEdit",false)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","SUFFIX","AllowEdit",false)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PRODUCT_LINE","AllowEdit",false)
+	'jgp start
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PRIORITY","AllowEdit",false)
+	'jgp end
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","CUSTOMER_PO","AllowEdit",false)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PART","AllowEdit",false)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","DESCRIPTION","AllowEdit",false)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","RTR_DESC","AllowEdit",false)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PODT","AllowEdit",false)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","QTY_LEFT","AllowEdit",false)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","DATE_DUE","AllowEdit",false)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","One","AllowEdit",false)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Two","AllowEdit",false)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Three","AllowEdit",false)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Four","AllowEdit",false)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Five","AllowEdit",false)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Six","AllowEdit",false)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Seven","AllowEdit",false)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Eight","AllowEdit",false)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Nine","AllowEdit",false)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Ten","AllowEdit",false)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","seqRes","AllowEdit",false)	
+	
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PODT","DisplayCustomDatetime","d")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","DATE_DUE","DisplayCustomDatetime","d")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Scheduled_Due_Date","DisplayCustomDatetime","d")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Date_Opened","DisplayCustomDatetime","d")
+	
+	
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","OneRuntime","DisplayCustomNumeric","0.00")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","TwoRuntime","DisplayCustomNumeric","0.00")	
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","ThreeRuntime","DisplayCustomNumeric","0.00")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","FourRuntime","DisplayCustomNumeric","0.00")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","FiveRuntime","DisplayCustomNumeric","0.00")	
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","SixRuntime","DisplayCustomNumeric","0.00")	
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","SevenRuntime","DisplayCustomNumeric","0.00")
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","EightRuntime","DisplayCustomNumeric","0.00")	
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","NineRuntime","DisplayCustomNumeric","0.00")	
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","TenRuntime","DisplayCustomNumeric","0.00")		
+	
+	Gui.FrmKA.GsGCKA.SetColumnProperty("gvKA","QTY_LEFT","DisplayCustomNumeric","#,###,##0")
+	
+	'One
+	gui.FrmKA.GsGCKA.AddStyleFormatCondition("gvKA","One","One","Expression","Substring(One,0,1) = '#'")
+	gui.FrmKA.GsGCKA.SetStyleFormatConditionProperty("gvKA","One","One","BACKCOLOR","LightGreen")
+	gui.FrmKA.GsGCKA.SetStyleFormatConditionProperty("gvKA","One","One","FontStrikeOut",True)	
+	gui.FrmKA.GsGCKA.AddStyleFormatCondition("gvKA","One","One2","Expression","Substring(One,0,1) = '!'")
+	gui.FrmKA.GsGCKA.SetStyleFormatConditionProperty("gvKA","One","One2","BACKCOLOR","Red")
+	'Two
+	gui.FrmKA.GsGCKA.AddStyleFormatCondition("gvKA","Two","Two","Expression","Substring(Two,0,1) = '#'")
+	gui.FrmKA.GsGCKA.SetStyleFormatConditionProperty("gvKA","Two","Two","BACKCOLOR","LightGreen")
+	gui.FrmKA.GsGCKA.SetStyleFormatConditionProperty("gvKA","Two","Two","FontStrikeOut",True)	
+	gui.FrmKA.GsGCKA.AddStyleFormatCondition("gvKA","Two","Two2","Expression","Substring(Two,0,1) = '!'")
+	gui.FrmKA.GsGCKA.SetStyleFormatConditionProperty("gvKA","Two","Two2","BACKCOLOR","Red")	
+	'Three
+	gui.FrmKA.GsGCKA.AddStyleFormatCondition("gvKA","Three","Three","Expression","Substring(Three,0,1) = '#'")
+	gui.FrmKA.GsGCKA.SetStyleFormatConditionProperty("gvKA","Three","Three","BACKCOLOR","LightGreen")
+	gui.FrmKA.GsGCKA.SetStyleFormatConditionProperty("gvKA","Three","Three","FontStrikeOut",True)	
+	gui.FrmKA.GsGCKA.AddStyleFormatCondition("gvKA","Three","Three2","Expression","Substring(Three,0,1) = '!'")
+	gui.FrmKA.GsGCKA.SetStyleFormatConditionProperty("gvKA","Three","Three2","BACKCOLOR","Red")	
+	'Four
+	gui.FrmKA.GsGCKA.AddStyleFormatCondition("gvKA","Four","Four","Expression","Substring(Four,0,1) = '#'")
+	gui.FrmKA.GsGCKA.SetStyleFormatConditionProperty("gvKA","Four","Four","BACKCOLOR","LightGreen")
+	gui.FrmKA.GsGCKA.SetStyleFormatConditionProperty("gvKA","Four","Four","FontStrikeOut",True)	
+	gui.FrmKA.GsGCKA.AddStyleFormatCondition("gvKA","Four","Four2","Expression","Substring(Four,0,1) = '!'")
+	gui.FrmKA.GsGCKA.SetStyleFormatConditionProperty("gvKA","Four","Four2","BACKCOLOR","Red")	
+	'Five
+	gui.FrmKA.GsGCKA.AddStyleFormatCondition("gvKA","Five","Five","Expression","Substring(Five,0,1) = '#'")
+	gui.FrmKA.GsGCKA.SetStyleFormatConditionProperty("gvKA","Five","Five","BACKCOLOR","LightGreen")
+	gui.FrmKA.GsGCKA.SetStyleFormatConditionProperty("gvKA","Five","Five","FontStrikeOut",True)	
+	gui.FrmKA.GsGCKA.AddStyleFormatCondition("gvKA","Five","Five2","Expression","Substring(Five,0,1) = '!'")
+	gui.FrmKA.GsGCKA.SetStyleFormatConditionProperty("gvKA","Five","Five2","BACKCOLOR","Red")	
+	'Six
+	gui.FrmKA.GsGCKA.AddStyleFormatCondition("gvKA","Six","Six","Expression","Substring(Six,0,1) = '#'")
+	gui.FrmKA.GsGCKA.SetStyleFormatConditionProperty("gvKA","Six","Six","BACKCOLOR","LightGreen")
+	gui.FrmKA.GsGCKA.SetStyleFormatConditionProperty("gvKA","Six","Six","FontStrikeOut",True)	
+	gui.FrmKA.GsGCKA.AddStyleFormatCondition("gvKA","Six","Six2","Expression","Substring(Six,0,1) = '!'")
+	gui.FrmKA.GsGCKA.SetStyleFormatConditionProperty("gvKA","Six","Six2","BACKCOLOR","Red")	
+	'Seven
+	gui.FrmKA.GsGCKA.AddStyleFormatCondition("gvKA","Seven","Seven","Expression","Substring(Seven,0,1) = '#'")
+	gui.FrmKA.GsGCKA.SetStyleFormatConditionProperty("gvKA","Seven","Seven","BACKCOLOR","LightGreen")
+	gui.FrmKA.GsGCKA.SetStyleFormatConditionProperty("gvKA","Seven","Seven","FontStrikeOut",True)	
+	gui.FrmKA.GsGCKA.AddStyleFormatCondition("gvKA","Seven","Seven2","Expression","Substring(Seven,0,1) = '!'")
+	gui.FrmKA.GsGCKA.SetStyleFormatConditionProperty("gvKA","Seven","Seven2","BACKCOLOR","Red")	
+	'Eight
+	gui.FrmKA.GsGCKA.AddStyleFormatCondition("gvKA","Eight","Eight","Expression","Substring(Eight,0,1) = '#'")
+	gui.FrmKA.GsGCKA.SetStyleFormatConditionProperty("gvKA","Eight","Eight","BACKCOLOR","LightGreen")
+	gui.FrmKA.GsGCKA.SetStyleFormatConditionProperty("gvKA","Eight","Eight","FontStrikeOut",True)	
+	gui.FrmKA.GsGCKA.AddStyleFormatCondition("gvKA","Eight","Eight2","Expression","Substring(Eight,0,1) = '!'")
+	gui.FrmKA.GsGCKA.SetStyleFormatConditionProperty("gvKA","Eight","Eight2","BACKCOLOR","Red")	
+	'Nine
+	gui.FrmKA.GsGCKA.AddStyleFormatCondition("gvKA","Nine","Nine","Expression","Substring(Nine,0,1) = '#'")
+	gui.FrmKA.GsGCKA.SetStyleFormatConditionProperty("gvKA","Nine","Nine","BACKCOLOR","LightGreen")
+	gui.FrmKA.GsGCKA.SetStyleFormatConditionProperty("gvKA","Nine","Nine","FontStrikeOut",True)	
+	gui.FrmKA.GsGCKA.AddStyleFormatCondition("gvKA","Nine","Nine2","Expression","Substring(Nine,0,1) = '!'")
+	gui.FrmKA.GsGCKA.SetStyleFormatConditionProperty("gvKA","Nine","Nine2","BACKCOLOR","Red")		
+	'Ten
+	gui.FrmKA.GsGCKA.AddStyleFormatCondition("gvKA","Ten","Ten","Expression","Substring(Ten,0,1) = '#'")
+	gui.FrmKA.GsGCKA.SetStyleFormatConditionProperty("gvKA","Ten","Ten","BACKCOLOR","LightGreen")
+	gui.FrmKA.GsGCKA.SetStyleFormatConditionProperty("gvKA","Ten","Ten","FontStrikeOut",True)	
+	gui.FrmKA.GsGCKA.AddStyleFormatCondition("gvKA","Ten","Ten2","Expression","Substring(Ten,0,1) = '!'")
+	gui.FrmKA.GsGCKA.SetStyleFormatConditionProperty("gvKA","Ten","Ten2","BACKCOLOR","Red")			
+	
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Flag_hold","AllowEdit",False)	
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","Flag_hold","ReadOnly",True)
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PartDoc","AllowEdit",False)	
+	Gui.FrmKA.GsGCKA.setcolumnProperty("gvKA","PartDoc","ReadOnly",True)	
+	
+	Gui.FrmKA.GsGCKA.MainView("gvKA")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: GCG_6262_OpenJob.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.End 
+F.Intrinsic.Control.EndTry
+Program.Sub.loadGVKA.End
+
+
+Program.Sub.Serialize.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	V.Local.sSerialize.Declare
+
+	'GvAllPOs
+	Gui.FrmKA.GsGCKA.Serialize("gvKA",V.Local.sSerialize)
+	F.Global.Registry.AddValue(V.Caller.User,V.Caller.CompanyCode,"GVKA",6262,1000,False,"Serialize",False,0,-999.0,1/1/1980,12:00:00 AM,V.Local.sSerialize)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.End
+F.Intrinsic.Control.EndTry
+Program.Sub.Serialize.End
+
+Program.Sub.Deserialize.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare	
+	V.Local.sSerialize.Declare
+	
+	'gvKA
+	F.Global.Registry.ReadValue(V.Caller.User,V.Caller.CompanyCode,"GVKA",6262,1000,6,"",V.Local.sSerialize)
+	F.Intrinsic.Control.If(V.Local.sSerialize.Trim,<>,"")
+		Gui.FrmKA.GsGCKA.Deserialize(V.Local.sSerialize)
+	F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.End
+F.Intrinsic.Control.EndTry
+Program.Sub.Deserialize.End
+Program.Sub.FrmKA_ExportClick.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	V.Local.sFileExport.Declare
+	V.Local.bExcel.Declare
+	V.Local.bFileLocked.Declare
+	V.Local.sMsg.Declare
+
+	F.Automation.MSExcel.CheckPresence(V.Local.bExcel)
+
+	F.Intrinsic.Control.If(V.Local.bExcel)
+		F.Intrinsic.String.Build("{0}\GAB_KA_Export.xlsx",V.Caller.LocalGssTempDir,V.Local.sFileExport)
+		F.Intrinsic.File.IsFileLocked(V.Local.sFileExport,V.Local.bFileLocked)
+		F.Intrinsic.Control.If(V.Local.bFileLocked)
+			F.Intrinsic.String.Build("File is already open. Please close and export again.{0}File: {1}",V.Ambient.NewLine,V.Local.sFileExport,V.Local.sMsg)
+			F.Intrinsic.UI.Msgbox(V.Local.sMsg,"File In Use")
+		F.Intrinsic.Control.Else
+			Gui.FrmKA.GsGCKA.Export(V.Local.sFileExport,"xlsx")
+			F.Intrinsic.Task.ShellExec(0,"",V.Local.sFileExport,"","",1)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.Else
+		F.Intrinsic.String.Build("{0}\GAB_KA_Export.csv",V.Caller.LocalGssTempDir,V.Local.sFileExport)
+		F.Intrinsic.File.IsFileLocked(V.Local.sFileExport,V.Local.bFileLocked)
+		F.Intrinsic.Control.If(V.Local.bFileLocked)
+			F.Intrinsic.String.Build("File is already open. Please close and export again.{0}File: {1}",V.Ambient.NewLine,V.Local.sFileExport,V.Local.sMsg)
+			F.Intrinsic.UI.Msgbox(V.Local.sMsg,"File In Use")
+		F.Intrinsic.Control.Else
+			Gui.FrmKA.GsGCKA.Export(V.Local.sFileExport,"csv")
+		F.Intrinsic.Control.EndIf
+			F.Intrinsic.Task.ShellExec(0,"",V.Local.sFileExport,"","",1)
+	F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: GCG_6262_OpenJob.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.End 
+F.Intrinsic.Control.EndTry
+Program.Sub.FrmKA_ExportClick.End
+
+Program.Sub.CreateContextMenu.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	gui.FrmKA..ContextMenuCreate("Line")
+	gui.FrmKA..ContextMenuAddItem("Line","SupplyAndDemandView",0,"Supply and Demand View")
+	gui.FrmKA..ContextMenuAddItem("Line","SupplyAndDemandEdit",0,"Supply and Demand Edit")
+	gui.FrmKA..ContextMenuAddItem("Line","JOBVIEW",0,"WO View")
+	gui.FrmKA..ContextMenuAddItem("Line","JOBEDIT",0,"WO Edit")	
+	gui.FrmKA..ContextMenuAddItem("Line","PrintWO",0,"Print WO")
+	
+	Gui.FrmKA..ContextMenuSetItemEventHandler("Line","SupplyAndDemandView","LineHandler")
+	Gui.FrmKA..ContextMenuSetItemEventHandler("Line","SupplyAndDemandEdit","LineHandler")
+	Gui.FrmKA..ContextMenuSetItemEventHandler("Line","JOBVIEW","LineHandler")
+	Gui.FrmKA..ContextMenuSetItemEventHandler("Line","JOBEDIT","LineHandler")
+	Gui.FrmKA..ContextMenuSetItemEventHandler("Line","PrintWO","LineHandler")	
+	
+	gui.FrmKA..ContextMenuCreate("General")
+	gui.FrmKA..ContextMenuAddItem("General","Refresh",0,"Refresh")
+	gui.FrmKA..ContextMenuAddItem("General","Export",0,"Export")
+	gui.FrmKA..ContextMenuAddItem("General","GSSWebsite",0,"GSS Website")
+	gui.FrmKA..ContextMenuAddItem("General","ServiceWeb",0,"Service Web")
+	
+	Gui.FrmKA..ContextMenuSetItemEventHandler("General","Refresh","GeneralHandler")
+	Gui.FrmKA..ContextMenuSetItemEventHandler("General","Export","GeneralHandler")
+	Gui.FrmKA..ContextMenuSetItemEventHandler("General","GSSWebsite","GeneralHandler")
+	Gui.FrmKA..ContextMenuSetItemEventHandler("General","ServiceWeb","GeneralHandler")
+	
+	gui.FrmKA.GsGCKA.ContextMenuAttach("General")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.End
+F.Intrinsic.Control.EndTry
+Program.Sub.CreateContextMenu.End
+
+Program.Sub.LineHandler.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	V.Local.sJOB.Declare
+	V.Local.sSuf.Declare
+	V.Local.sParams.Declare
+	v.Local.sTemp.Declare
+	v.Local.bAuth.Declare
+	
+	F.Intrinsic.Control.SelectCase(v.Args.ItemName.UCase)
+	
+		'additions made for project 6262 if the PART column is selected launch the Supply and Demand screen
+		f.Intrinsic.Control.Case("SUPPLYANDDEMANDEDIT")
+			f.Global.Security.CheckUserAccessIPM(371,0,v.Local.bAuth)
+			f.Intrinsic.Control.If(v.Local.bAuth.Not)
+				f.Intrinsic.UI.Msgbox("User does not have permission to Supply and Demand Edit screen.","Menu Item Not Assigned")
+				f.Intrinsic.Control.ExitSub
+			f.Intrinsic.Control.EndIf				
+			'if the edit radio button is selected then launch as open
+			F.Intrinsic.String.Build("{0}!*!{1}!*!M",v.Global.sPart,v.Global.sLoc,v.Local.sParams)
+			F.Global.General.CallWrapperASync(300011,v.Local.sParams)
+		F.Intrinsic.Control.Case("SUPPLYANDDEMANDVIEW")
+			f.Global.Security.CheckUserAccessIPM(321,0,v.Local.bAuth)
+			f.Intrinsic.Control.If(v.Local.bAuth.Not)
+				f.Intrinsic.UI.Msgbox("User does not have permission to Supply and Demand View screen.","Menu Item Not Assigned")
+				f.Intrinsic.Control.ExitSub
+			f.Intrinsic.Control.EndIf		
+			'otherwise if the edit radio button is not selected launch the supply and demand without edit
+			F.Intrinsic.String.Build("{0}!*!{1}!*!A",v.Global.sPart,v.Global.sLoc,v.Local.sParams)
+			F.Global.General.CallWrapperASync(300010,v.Local.sParams)
+
+		f.Intrinsic.Control.Case("JOBEDIT")	
+			f.Global.Security.CheckUserAccessIPM(527,1,v.Local.bAuth)
+			f.Intrinsic.Control.If(v.Local.bAuth.Not)
+				f.Intrinsic.UI.Msgbox("User does not have permission to WO Open screen.","Menu Item Not Assigned")
+				f.Intrinsic.Control.ExitSub
+			f.Intrinsic.Control.EndIf		
+			F.Intrinsic.String.Build("{0}!*!{1}!*!O",v.Global.sJOB,v.Global.sSuf,v.Local.sParams)
+			f.Global.General.CallWrapperASync(2009,v.Local.sParams)
+		f.Intrinsic.Control.Case("JOBVIEW")
+			f.Global.Security.CheckUserAccessIPM(536,0,v.Local.bAuth)
+			f.Intrinsic.Control.If(v.Local.bAuth.Not)
+				f.Intrinsic.UI.Msgbox("User does not have permission to WO View screen.","Menu Item Not Assigned")
+				f.Intrinsic.Control.ExitSub
+			f.Intrinsic.Control.EndIf		
+			F.Intrinsic.String.Build("7!*!{0}!*!{1}!*!A",v.Global.sJOB,v.Global.sSuf,v.Local.sParams)
+			F.Global.General.CallWrapperASync(450000,v.Local.sParams)
+		'JGP added code to print work order and pick slip	
+		F.Intrinsic.Control.Case("PRINTWO")	
+			'print WO
+			Gui.FrmKA.GsGCKA.SetCellValueByColumnName("gvKA","FLAG_WO_PRTD",v.Global.iRowIndex,True)
+			f.Intrinsic.String.Build("{0}!*!{1}!*!1811",v.Global.sJOB,v.Global.sSuf,V.Local.sTemp)
+			F.Global.General.CallWrapperASync(900100,V.Local.sTemp)
+			'print pick list
+			Gui.FrmKA.GsGCKA.GetCellValueByColumnName("gvKA","JOB",v.Global.iRowIndex,v.Local.sJob)
+			Gui.FrmKA.GsGCKA.GetCellValueByColumnName("gvKA","SUFFIX",v.Global.iRowIndex,v.Local.sSuf)
+			F.Intrinsic.String.Build("{0}!*!{1}!*!{0}!*!{1}",v.Global.sJOB,v.Global.sSuf,V.Local.sTemp)
+			F.Global.General.CallWrapperASync(900200,V.Local.sTemp)
+	
+	F.Intrinsic.Control.EndSelect
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.End
+F.Intrinsic.Control.EndTry
+
+Program.Sub.LineHandler.End
+
+Program.Sub.GeneralHandler.Start
+f.Intrinsic.Control.Try
+	v.Local.sError.Declare
+	
+	f.Intrinsic.Control.SelectCase(v.Args.ItemName.UCase)
+		f.Intrinsic.Control.Case("REFRESH")
+			F.Intrinsic.Control.CallSub(FrmKA_RefreshClick)
+	
+		f.Intrinsic.Control.Case("EXPORT")
+			F.Intrinsic.Control.CallSub(FrmKA_ExportClick)	
+			
+		f.Intrinsic.Control.Case("GSSWEBSITE")
+			F.Intrinsic.Task.ShellExec(0,"Open","http://www.globalshopsolutions.com/","","",0)
+		f.Intrinsic.Control.Case("SERVICEWEB")
+			F.Intrinsic.Task.ShellExec(0,"Open","https://www.gss-service.com/","","",0)			
+	
+	f.Intrinsic.Control.EndSelect	
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.End
+F.Intrinsic.Control.EndTry
+Program.Sub.GeneralHandler.End
+
+Program.Sub.GsGCKA_RowCellClick.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	v.Local.iX.Declare
+	v.Local.iY.Declare
+	v.Local.sSQL.Declare
+	v.Local.sHold.Declare
+	v.Local.iHold.Declare
+	v.Local.bHold.Declare
+	v.Local.sPart.Declare
+	v.Local.irefid.Declare
+	v.Local.sLinkID.Declare
+	v.Local.iLinkID.Declare
+	v.Local.iPID.Declare
+
+	Gui.FrmKA.GsGCKA.GetCellValueByColumnName("gvKA","JOB",V.Args.rowIndex,v.Global.sJob)
+	Gui.FrmKA.GsGCKA.GetCellValueByColumnName("gvKA","SUFFIX",v.Args.rowIndex,v.Global.sSuf)
+	Gui.FrmKA.GsGCKA.GetCellValueByColumnName("gvKA","PART",v.Args.rowIndex,v.Global.sPart)
+	Gui.FrmKA.GsGCKA.GetCellValueByColumnName("gvKA","LOCATION",v.Args.rowIndex,v.Global.sLoc)
+	v.Global.iRowIndex.Set(v.Args.RowIndex)	
+	
+	F.Intrinsic.Control.SelectCase(v.Args.Column.UCase)
+	
+		F.Intrinsic.Control.CaseAny("JOB","SUFFIX","PART","FLAG_WO_PRTD")
+			f.Intrinsic.API.GetMousePosition(v.Local.iX,v.Local.iY)
+		f.Intrinsic.Math.Add(v.Local.iY,15,v.Local.iY)	
+			GUI.FrmKA..ContextMenuShow("Line",v.Local.iX,v.Local.iY)
+			
+		F.Intrinsic.Control.Case("FLAG_HOLD")
+		
+			F.Intrinsic.Control.If(v.Global.bEditWO)
+				F.Intrinsic.Control.If(V.Args.CellValue)
+					V.Local.sHold.Set("N")
+					V.Local.iHold.Set(0)
+					V.Local.bHold.Set(False)
+					f.Data.DataTable.SetValue("dtKA",V.Args.RowIndex,"FLAG_HOLD",False)
+				F.Intrinsic.Control.Else
+					V.Local.sHold.Set("Y")
+					V.Local.iHold.Set(1)
+					V.Local.bHold.Set(True)
+					f.Data.DataTable.SetValue("dtKA",V.Args.RowIndex,"FLAG_HOLD",True)
+				F.Intrinsic.Control.EndIf
+				F.Intrinsic.String.Build("UPDATE JOB_HEADER SET FLAG_HOLD = '{0}' WHERE JOB = '{1}' AND SUFFIX = '{2}';",V.Local.sHold,V.Global.sJob,V.Global.sSuf,V.Local.sSQL)
+				F.ODBC.Connection!con.Execute(V.Local.sSQL)
+				F.Intrinsic.String.Build("UPDATE APSV3_JBMASTER SET HOLD = '{0}' WHERE JOB = '{1}' AND SFX = '{2}';",V.Local.iHold,V.Global.sJob,V.Global.sSuf,V.Local.sSQL)
+				F.ODBC.Connection!con.Execute(V.Local.sSQL)
+			f.Intrinsic.Control.Else
+				f.Intrinsic.UI.Msgbox("You do not have permission to put on hold WO.","Attention")
+				f.Intrinsic.Control.ExitSub
+			F.Intrinsic.Control.EndIf
+		f.Intrinsic.Control.Case("PARTDOC")
+		
+			V.Local.sPart.Set(V.DataTable.dtKA(V.Args.RowIndex).Part!FieldValTRIM)
+			f.Global.DocumentControl.GetLinkID(v.Local.sPart.Trim,35,v.Local.iRefID)
+			f.Intrinsic.Control.If(v.Local.irefid,=,-1)
+				F.ODBC.Connection!con.ExecuteAndReturn("SELECT MAX(LINK_ID) AS 'LinkID' FROM LINK_DATA",v.Local.sLinkID)
+				f.Intrinsic.Math.ConvertToLong(v.Local.sLinkID,v.Local.iLinkID)
+				f.Intrinsic.Math.Add(v.Local.iLinkID,1,v.Local.iLinkID)
+				f.Intrinsic.string.LPad(v.Local.iLinkID,"0",9,v.Local.sLinkID)
+				V.Local.iRefID.Set(v.Local.iLinkID)
+				F.Global.DocumentControl.CreateReference(V.Local.sPart,"35",V.Local.iRefID)
+			f.Intrinsic.Control.EndIf
+			F.Global.DocumentControl.Invoke(V.Local.sPart,35,"(Inventory Master)",V.Local.iPID)			
+	F.Intrinsic.Control.EndSelect
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: GCG_6262_OpenJob.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.End 
+F.Intrinsic.Control.EndTry
+Program.Sub.GsGCKA_RowCellClick.End
+
+Program.Sub.GsGCKA_CellValueChanged.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	v.Local.sWO.Declare
+	v.Local.sSuf.Declare
+	v.Local.sSQL.Declare
+	v.Local.sText.Declare
+
+	Gui.FrmKA.GsGCKA.GetCellValueByColumnName("gvKA","JOB",V.Args.rowIndex,v.Local.sWO)
+	Gui.FrmKA.GsGCKA.GetCellValueByColumnName("gvKA","SUFFIX",V.Args.RowIndex,v.Local.sSuf)
+	F.Intrinsic.Control.SelectCase(v.Args.column)
+		f.Intrinsic.Control.Case("WO_NOTE")
+			F.Intrinsic.String.Left(V.Args.Value,70,v.Local.sText)
+			F.Intrinsic.String.Build("SELECT * FROM WO_USER_FLDS WHERE JOB = '{0}' AND SUFFIX = '{1}';",v.Local.sWO,v.Local.sSuf,v.Local.sSQL)
+			F.ODBC.Connection!con.OpenRecordsetRW("rstNotes",v.Local.sSQL)
+			F.Intrinsic.Control.If(V.ODBC.con!rstNotes.EOF,=,true)
+				f.ODBC.con!rstNotes.AddNew
+			f.Intrinsic.Control.EndIf
+			F.ODBC.con!rstNotes.Set!JOB(v.Local.sWO)
+			F.ODBC.con!rstNotes.Set!SUFFIX(v.Local.sSuf)
+			F.ODBC.con!rstNotes.Set!USER_6(v.Local.sText)
+			f.ODBC.con!rstNotes.Update
+			f.ODBC.con!rstNotes.Close
+		f.Intrinsic.Control.Case("NOTES")
+			F.Intrinsic.String.Build("SELECT * FROM GAB_4169_WO_NOTES WHERE JOB = '{0}' AND SUFFIX = '{1}';",V.Local.sWO,V.Local.sSuf,V.Local.sSQL)
+			F.ODBC.Connection!con.OpenRecordsetRW("rstNotes",v.Local.sSQL)
+			F.Intrinsic.Control.If(v.ODBC.con!rstNotes.EOF,=,true)
+				f.ODBC.con!rstNotes.AddNew
+			f.Intrinsic.Control.EndIf
+			f.ODBC.con!rstNotes.Set!JOB(v.Local.sWO)
+			f.ODBC.con!rstNotes.Set!SUFFIX(v.Local.sSuf)
+			f.ODBC.con!rstNotes.Set!NOTES(v.Args.value)
+			f.ODBC.con!rstNotes.Update
+			f.ODBC.con!rstNotes.Close
+	f.Intrinsic.Control.EndSelect
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: GCG_6262_OpenJob.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.End 
+F.Intrinsic.Control.EndTry
+Program.Sub.GsGCKA_CellValueChanged.End
+
+Program.Sub.Comments.Start
+${$5$}$3.0.0.0$}$1
+${$6$}$bnguyen$}$20210308093427522$}$tqzwddZCkmoVRWHEL6DZymEEseDhOdzimPYCXdXuHEG6edgRFP4Di+Y/ZJSwUWnzbxaT94LncFI=
+Program.Sub.Comments.End
