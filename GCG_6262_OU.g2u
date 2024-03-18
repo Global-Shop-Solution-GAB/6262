@@ -1,0 +1,284 @@
+﻿Program.Sub.Preflight.Start
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+f.Intrinsic.Control.Try
+	v.Local.sRet.Declare	
+	V.Local.bExists.Declare
+	V.Local.sCheckFile.Declare
+	v.Local.sProcessIDfile.Declare
+	v.Local.sSQL.Declare
+	v.Local.sDescription.Declare
+	
+	
+'	f.Intrinsic.Control.If(v.Caller.Hook,<>,38120)
+'		f.Intrinsic.Control.End
+'	f.Intrinsic.Control.EndIf
+
+	f.ODBC.Connection!con.OpenCompanyConnection(600)	
+
+	f.Intrinsic.String.Build("{0}\6262_PID_{1}.txt",v.Caller.GasDir,v.Caller.CompanyCode,v.Local.sProcessIDfile)
+	f.Intrinsic.file.Exists(v.Local.sProcessIDfile,v.Local.bExists)
+	'No file existed
+	f.Intrinsic.control.If(v.Local.bExists.Not)
+		f.Intrinsic.File.String2File(v.Local.sProcessIDfile,v.Ambient.PID)
+	
+	'There is file PID
+	f.Intrinsic.control.Else
+		f.Intrinsic.File.File2String(v.Local.sProcessIDfile,v.Local.sCheckFile)
+		
+		'check if the file is blank
+		'File is not blank
+		f.Intrinsic.Control.If(v.Local.sCheckFile,<>,"")
+			f.Intrinsic.task.PIDRunning(v.Local.sCheckFile,v.Local.bExists)
+			'Other PID stops running
+			f.Intrinsic.Control.If(v.Local.bExists,=,false)
+				f.intrinsic.File.String2File(v.Local.sProcessIDfile,v.Ambient.PID)
+			
+			'Other PID is still running	
+			f.Intrinsic.Control.Else
+				f.Intrinsic.Control.CallSub("Unload")
+			f.Intrinsic.Control.EndIf
+			
+		'There is file PID but blank	
+		f.Intrinsic.Control.Else
+			f.intrinsic.File.String2File(v.Local.sProcessIDfile,v.Ambient.PID)
+		f.Intrinsic.Control.EndIf
+	f.Intrinsic.Control.EndIf
+	
+	f.Intrinsic.Control.CallSub(CheckTable)
+	f.Intrinsic.Control.CallSub("Load")
+	f.Intrinsic.Control.CallSub("Unload")
+	
+f.Intrinsic.Control.catch
+	f.Intrinsic.String.Left(v.Ambient.ErrorDescription.Trim,850,v.Local.sDescription)
+	f.Intrinsic.String.Build("Insert into GCG_6262_Error (DateTimeOccur,Description) values (Now(),'{0} Sub: {1} {2}')",v.Ambient.ErrorNumber,v.Ambient.CurrentSubroutine,v.Local.sDescription.PSQLFriendly,v.Local.sSQL)
+	f.ODBC.Connection!con.Execute(v.Local.sSQL)	
+	f.Intrinsic.Control.CallSub("Unload")
+f.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.Unload.Start
+V.Local.sError.Declare
+F.ODBC.Connection!con.close
+F.Intrinsic.Control.End
+Program.Sub.Unload.End
+
+Program.Sub.checkTable.Start
+F.Intrinsic.Control.Try
+	v.Local.bTable.Declare(Boolean)
+
+	F.ODBC.Connection!con.TableExists("GCG_6262_Error",V.Local.bTable)
+	F.Intrinsic.Control.If(v.Local.bTable.Not)
+		F.ODBC.Connection!con.Execute("CREATE TABLE GCG_6262_Error (DateTimeOccur DATETIME,Description VARCHAR(1000) );")
+	F.Intrinsic.Control.EndIf	
+	
+F.Intrinsic.Control.Catch
+	f.Intrinsic.Control.End
+F.Intrinsic.Control.EndTry
+Program.Sub.checkTable.End
+
+Program.Sub.Load.Start
+f.Intrinsic.Control.Try
+	V.Local.sError.Declare	
+	v.Local.iCnt.Declare
+	v.Local.sJob.Declare
+	v.Local.sSfx.Declare
+	v.Local.iFor.Declare
+	v.Local.iOne.Declare
+	v.Local.sMaterial.Declare
+	v.Local.iCount.Declare
+	v.Local.iMult.Declare
+	V.Local.sSQL.Declare
+	v.Local.sret.declare
+	v.Local.sFilter.Declare
+	v.Local.sExpression.Declare
+	v.Local.sFile.Declare
+	v.Local.sDescription.Declare
+	
+	F.Intrinsic.String.Build("SELECT DISTINCT CASE WHEN  FLAG_WO_PRTD = 'R' OR FLAG_WO_PRTD = 'Y' THEN CONVERT(1,SQL_BIT) ELSE CONVERT(0,SQL_BIT) END AS FLAG_WO_PRTD,CASE WHEN A.FLAG_HOLD = 'Y' THEN CONVERT(1,SQL_BIT) WHEN A.FLAG_HOLD = 'N' THEN CONVERT(0,SQL_BIT) ELSE CONVERT(0,SQL_BIT) END AS FLAG_HOLD,rtrim(C.NAME_CUSTOMER) as Name_Customer,A.JOB,A.SUFFIX,rtrim(CUSTOMER_PO) as Customer_PO,PART,rtrim(Part) as PartTrim,rtrim(DESCRIPTION) as Description,rtrim(A.DESCRIPTION) as RTR_DESC, A.Product_Line,PRIORITY,(SELECT TOP 1 VOH.DATE_ORDER FROM V_ORDER_TO_WO VOW LEFT JOIN V_ORDER_HEADER VOH ON VOH.ORDER_NO = VOW.ORDER_NO WHERE VOW.JOB = A.JOB AND VOW.SUFFIX = A.SUFFIX) AS PODT,(A.QTY_ORDER - A.QTY_COMPLETED) AS QTY_LEFT,DATE_DUE,'' AS WO_NOTE,LOCATION,PARENT_WO,PARENT_SUFFIX_PARENT,CONCAT(A.JOB,A.SUFFIX) AS JBSF, A.SCHEDULED_DUE_DATE,Part + Location as PartLoc,Date_Opened FROM V_JOB_HEADER A LEFT JOIN V_CUSTOMER_MASTER C ON A.CUSTOMER = C.CUSTOMER WHERE DATE_CLOSED = '1900-1-1'; {0}","",V.Local.sSQL)
+	F.Data.DataTable.CreateFromSQL("dtRaw","con",V.Local.sSQL,true)
+	
+	'Filter, only get jobs that has open sequences	
+	f.Data.Dictionary.CreateFromSQL("dictJSOpen","con","select JOB+SUFFIX,Convert(1,SQL_Bit) as StillOpen from v_job_operations where lmo in ('L','O','M') and flag_closed = '' and seq < '990000' Group by job,suffix having Count(Seq) > 0")
+	f.Data.Dictionary.SetDefaultReturn("dictJSOpen",False)
+	f.Data.Datatable.AddColumn("dtRaw","StillOpen","Boolean",False)
+	f.Data.Datatable.FillFromDictionary("dtRaw","dictJSOpen","JBSF","StillOpen")
+	f.Data.DataView.Create("dtRaw","vOpen",22,"StillOpen = 1","")
+	F.Intrinsic.Control.If(V.DataTable.dtKa.Exists)
+		F.Data.DataTable.Close("dtKA")
+	F.Intrinsic.Control.EndIf	
+	f.Data.DataView.ToDataTable("dtRaw","vOpen","dtKA",True)
+	f.Data.DataTable.Close("dtRaw")
+	f.Data.Dictionary.Close("dictJSOpen")
+	
+	f.Data.Datatable.AddExpressionColumn("dtKA","ParentJS","String","IIF(Trim(IsNull(Parent_WO,'')) = '',JBSF,Parent_WO + PARENT_SUFFIX_PARENT)")
+	f.Data.Datatable.AddColumn("dtKA","ParentPart","String","")
+	f.Data.Datatable.AddColumn("dtKA","ParentLocation","String","")
+	
+	'Get Parent PartLoc
+	f.Data.Dictionary.CreateFromSQL("dictPart","con","Select Job + Suffix as JS,Part from V_Job_Header")
+	f.Data.Dictionary.SetDefaultReturn("dictPart","")
+	f.Data.Datatable.FillFromDictionary("dtKA","dictPart","ParentJS","ParentPart")
+	f.Data.Dictionary.Close("dictPart")
+	f.Data.Dictionary.CreateFromSQL("dictLoc","con","Select Job + Suffix as JS,Location from V_Job_Header")
+	f.Data.Dictionary.SetDefaultReturn("dictLoc","")
+	f.Data.Datatable.FillFromDictionary("dtKA","dictLoc","ParentJS","ParentLocation")
+	f.Data.Dictionary.Close("dictLoc")	
+	
+	f.Data.Datatable.AddExpressionColumn("dtKA","ParentPartLoc","String","ParentPart + ParentLocation")	
+	
+	'Get Sales Order Line
+	f.Data.Dictionary.CreateFromSQL("dictSO","con","Select Job + Suffix as JS,Order_No + '-' + Order_Line as Line from Order_To_WO")
+	f.Data.Dictionary.SetDefaultReturn("dictSO","")
+	f.Data.Datatable.AddColumn("dtKA","SOLine","String","")
+	f.Data.Datatable.FillFromDictionary("dtKA","dictSO","JBSF","SOLine")
+	f.Data.Dictionary.Close("dictSO")
+	
+	'Sales Order Value
+	f.Data.Datatable.AddColumn("dtKA","SOValue1","Float",-1)
+	f.Data.Datatable.AddColumn("dtKA","SOValue2","Float",0)
+	f.Data.Dictionary.CreateFromSQL("dictSOValue","con","Select Order_no + '-' + Record_No as Line,Qty_Ordered * Price as SOValue from V_Order_Lines")
+	f.Data.Dictionary.SetDefaultReturn("dictSOValue",-1)
+	f.Data.Datatable.FillFromDictionary("dtKA","dictSOValue","SOLine","SOValue1")
+	f.Data.Dictionary.Close("dictSOValue")
+	
+	f.Data.Dictionary.CreateFromSQL("dictPartPrice","con","Select Part + Location as PartLoc,Amt_price from Inventory_mstr")
+	f.Data.Dictionary.SetDefaultReturn("dictPartPrice",0)
+	f.Data.Datatable.FillFromDictionary("dtKA","dictPartPrice","ParentPartLoc","SOValue2")
+	f.Data.Dictionary.Close("dictPartPrice")	
+	
+	f.Data.Datatable.AddExpressionColumn("dtKA","SOValue","Float","IIF(SOValue1 > -1,SOValue1,SOValue2)")
+	
+	'Last Date	
+	f.Data.Dictionary.CreateFromSQL("dictLastDate","con","Select job+suffix as JS, Convert(Max(Date_Sequence),SQL_Char) As Date_Sequence From V_Job_Detail Where  LMO = 'L' Group by Job,Suffix;")
+	f.Data.Dictionary.SetDefaultReturn("dictLastDate","")
+	f.Data.Datatable.AddColumn("dtKA","LastDate","String","")
+	f.Data.Datatable.FillFromDictionary("dtKA","dictLastDate","JBSF","LastDate")
+	f.Data.Dictionary.Close("dictLastDate")
+	
+	'Days Idle
+	f.Data.Datatable.AddColumn("dtKA","DaysIdle","String","")	
+	f.Intrinsic.String.Build("Select job+suffix as JS, Convert(datediff(day,Max(Date_Sequence),'{0}'),SQL_Char) As DaysIdle From V_Job_Detail Where  LMO = 'L' Group by Job,Suffix;",v.Ambient.Date.PervasiveDate,v.Local.sSQL)
+	
+	f.Data.Dictionary.CreateFromSQL("dictIdle","con",v.Local.sSQL)
+	f.Data.Dictionary.SetDefaultReturn("dictIdle","")
+	f.Data.Datatable.FillFromDictionary("dtKA","dictIdle","JBSF","DaysIdle")
+	f.Data.Dictionary.Close("dictIdle")	
+	
+	'added the Product line and router description to the datatable
+	f.Data.DataTable.AddColumn("dtKA","One","string", "")
+	f.Data.DataTable.AddColumn("dtKA","OneRuntime","Float",0)
+	f.Data.DataTable.AddColumn("dtKA","Two","string", "")
+	f.Data.DataTable.AddColumn("dtKA","TwoRuntime","Float",0)
+	f.Data.DataTable.AddColumn("dtKA","Three","string", "")
+	f.Data.DataTable.AddColumn("dtKA","ThreeRuntime","Float",0)
+	f.Data.DataTable.AddColumn("dtKA","Four","string", "")
+	f.Data.DataTable.AddColumn("dtKA","FourRuntime","Float",0)
+	f.Data.DataTable.AddColumn("dtKA","Five","string", "")
+	f.Data.DataTable.AddColumn("dtKA","FiveRuntime","Float",0)
+	f.Data.DataTable.AddColumn("dtKA","Six","string", "")
+	f.Data.DataTable.AddColumn("dtKA","SixRuntime","Float",0)
+	f.Data.DataTable.AddColumn("dtKA","Seven","string", "")
+	f.Data.DataTable.AddColumn("dtKA","SevenRuntime","Float",0)
+	f.Data.DataTable.AddColumn("dtKA","Eight","string", "")
+	f.Data.DataTable.AddColumn("dtKA","EightRuntime","Float",0)
+	f.Data.DataTable.AddColumn("dtKA","Nine","string", "")
+	f.Data.DataTable.AddColumn("dtKA","NineRuntime","Float",0)
+	f.Data.DataTable.AddColumn("dtKA","Ten","string", "")
+	f.Data.DataTable.AddColumn("dtKA","TenRuntime","Float",0)
+	f.Data.DataTable.AddColumn("dtKA","seqRes","string", "")
+	f.Data.DataTable.AddColumn("dtKA","NOTES","string", "")	
+	
+	f.Intrinsic.Control.If(v.DataTable.Matl.Exists)
+		f.Data.DataTable.Close("Matl")
+	f.Intrinsic.Control.EndIf
+	f.Data.DataTable.CreateFromSQL("Matl","con","select seqres,Job,Sfx,Seq From APSV3_JBLines where seqType = '2' ",True)
+	f.Data.DataView.Create("Matl","dvMatl")
+	'and APS.JOB = '{0}' and APS.SFX = '{1}' ORDER by APS.SEQ
+	f.Intrinsic.Control.If(v.DataTable.APS.Exists)
+		f.Data.DataTable.Close("APS")
+	f.Intrinsic.Control.EndIf
+	f.Data.DataTable.CreateFromSQL("APS","con","Select IF(ComplDate IS not NULL,'#',if(convert(left(duedate,10),sql_date) < curdate(),'!','')) + LTrim(SeqRes) as WC,Job,Sfx,Seq,Job+Sfx+right('000000' + Convert(Seq,SQL_Char),6) as JSS,Convert(0,SQL_float) as Runtime,convert(0,SQL_Integer) as Rem_Hrs2 From APSV3_JBLines Where (SeqType = '1' OR SeqType='3')",True)
+	f.Data.DataTable.AddExpressionColumn("APS","SR","String","[WC]")
+	
+	'Runtime
+	f.Data.Dictionary.CreateFromSQL("dictRuntime","con","Select Job+Suffix+Seq, Hours_Estimated from v_Job_operations where LMO <> 'C' ")
+	f.Data.Dictionary.SetDefaultReturn("dictRuntime",0)
+	f.Data.Datatable.FillFromDictionary("APS","dictRuntime","JSS","Runtime")
+	f.Data.Dictionary.Close("dictRuntime")
+	
+	'Document Control
+	f.Data.Datatable.AddColumn("dtKA","PartDoc","String","")
+	F.Data.Dictionary.CreateFromSQL("dDCC","con","Select rtrim(ID) As Part,'Docs' As DCC From Link_Data Where Type = '00035'")
+	F.Data.Dictionary.SetDefaultReturn("dDCC","")
+	F.Data.DataTable.FillFromDictionary("dtKA","dDCC","PartTrim","PartDoc")
+	F.Data.Dictionary.Close("dDCC")	
+	
+	f.Data.Datatable.RemoveColumn("dtKA","PartTrim")
+	f.Data.Datatable.AcceptChanges("dtKA")
+	
+	f.Data.DataView.Create("APS","dvAPS")
+	
+	F.Intrinsic.Control.For(V.Local.iCnt,0,V.DataTable.dtKA.RowCount--,1)
+		'Material
+		f.Intrinsic.String.Build("Job = '{0}' and Sfx = '{1}'",v.datatable.dtKA(v.Local.iCnt).JOB!fieldValString,V.datatable.dtKA(v.Local.iCnt).SUFFIX!fieldvalString,v.Local.sFilter)
+		f.Data.DataView.SetFilter("Matl","dvMatl",v.Local.sFilter)
+		f.Data.DataView.SetSort("Matl","dvMatl","Seq")
+		f.Intrinsic.Control.IIF(v.DataView.Matl!dvMatl.RowCount,<>,0,v.DataView.Matl!dvMatl(0).seqres!FieldValString,"",v.Local.sMaterial)
+		'From 1 to 10
+		f.Data.DataView.SetFilter("APS","dvAPS",v.Local.sFilter)
+		f.Data.DataView.SetSort("APS","dvAPS","JOB,SFX,SEQ")
+		
+		f.Intrinsic.Control.If(v.DataView.APS!dvAPS.RowCount,=,0)
+			F.data.dataTable.SetValue("dtKA",v.Local.iCnt,"seqRes",v.Local.sMaterial)
+			
+		f.Intrinsic.Control.ElseIf(v.DataView.APS!dvAPS.RowCount,=,1)
+			F.data.dataTable.SetValue("dtKA",v.Local.iCnt,"seqRes",v.Local.sMaterial,"One",v.DataView.APS!dvAPS(0).SR!FieldValTrim,"OneRuntime",v.DataView.APS!dvAPS(0).Runtime!FieldValTrim)
+			
+		f.Intrinsic.Control.ElseIf(v.DataView.APS!dvAPS.RowCount,=,2)
+			F.data.dataTable.SetValue("dtKA",v.Local.iCnt,"seqRes",v.Local.sMaterial,"One",v.DataView.APS!dvAPS(0).SR!FieldValTrim,"Two",v.DataView.APS!dvAPS(1).SR!FieldValTrim,"OneRuntime",v.DataView.APS!dvAPS(0).Runtime!FieldValTrim,"TwoRuntime",v.DataView.APS!dvAPS(1).Runtime!FieldValTrim)
+			
+		f.Intrinsic.Control.ElseIf(v.DataView.APS!dvAPS.RowCount,=,3)
+			F.data.dataTable.SetValue("dtKA",v.Local.iCnt,"seqRes",v.Local.sMaterial,"One",v.DataView.APS!dvAPS(0).SR!FieldValTrim,"Two",v.DataView.APS!dvAPS(1).SR!FieldValTrim,"Three",v.DataView.APS!dvAPS(2).SR!FieldValTrim,"OneRuntime",v.DataView.APS!dvAPS(0).Runtime!FieldValTrim,"TwoRuntime",v.DataView.APS!dvAPS(1).Runtime!FieldValTrim,"ThreeRuntime",v.DataView.APS!dvAPS(2).Runtime!FieldValTrim)
+			
+		f.Intrinsic.Control.ElseIf(v.DataView.APS!dvAPS.RowCount,=,4)
+			F.data.dataTable.SetValue("dtKA",v.Local.iCnt,"seqRes",v.Local.sMaterial,"One",v.DataView.APS!dvAPS(0).SR!FieldValTrim,"Two",v.DataView.APS!dvAPS(1).SR!FieldValTrim,"Three",v.DataView.APS!dvAPS(2).SR!FieldValTrim,"Four",v.DataView.APS!dvAPS(3).SR!FieldValTrim,"OneRuntime",v.DataView.APS!dvAPS(0).Runtime!FieldValTrim,"TwoRuntime",v.DataView.APS!dvAPS(1).Runtime!FieldValTrim,"ThreeRuntime",v.DataView.APS!dvAPS(2).Runtime!FieldValTrim,"FourRuntime",v.DataView.APS!dvAPS(3).Runtime!FieldValTrim)
+			
+		f.Intrinsic.Control.ElseIf(v.DataView.APS!dvAPS.RowCount,=,5)
+			F.data.dataTable.SetValue("dtKA",v.Local.iCnt,"seqRes",v.Local.sMaterial,"One",v.DataView.APS!dvAPS(0).SR!FieldValTrim,"Two",v.DataView.APS!dvAPS(1).SR!FieldValTrim,"Three",v.DataView.APS!dvAPS(2).SR!FieldValTrim,"Four",v.DataView.APS!dvAPS(3).SR!FieldValTrim,"Five",v.DataView.APS!dvAPS(4).SR!FieldValTrim,"OneRuntime",v.DataView.APS!dvAPS(0).Runtime!FieldValTrim,"TwoRuntime",v.DataView.APS!dvAPS(1).Runtime!FieldValTrim,"ThreeRuntime",v.DataView.APS!dvAPS(2).Runtime!FieldValTrim,"FourRuntime",v.DataView.APS!dvAPS(3).Runtime!FieldValTrim,"FiveRuntime",v.DataView.APS!dvAPS(4).Runtime!FieldValTrim)
+			
+		f.Intrinsic.Control.ElseIf(v.DataView.APS!dvAPS.RowCount,=,6)
+			F.data.dataTable.SetValue("dtKA",v.Local.iCnt,"seqRes",v.Local.sMaterial,"One",v.DataView.APS!dvAPS(0).SR!FieldValTrim,"Two",v.DataView.APS!dvAPS(1).SR!FieldValTrim,"Three",v.DataView.APS!dvAPS(2).SR!FieldValTrim,"Four",v.DataView.APS!dvAPS(3).SR!FieldValTrim,"Five",v.DataView.APS!dvAPS(4).SR!FieldValTrim,"Six",v.DataView.APS!dvAPS(5).SR!FieldValTrim,"OneRuntime",v.DataView.APS!dvAPS(0).Runtime!FieldValTrim,"TwoRuntime",v.DataView.APS!dvAPS(1).Runtime!FieldValTrim,"ThreeRuntime",v.DataView.APS!dvAPS(2).Runtime!FieldValTrim,"FourRuntime",v.DataView.APS!dvAPS(3).Runtime!FieldValTrim,"FiveRuntime",v.DataView.APS!dvAPS(4).Runtime!FieldValTrim,"SixRuntime",v.DataView.APS!dvAPS(5).Runtime!FieldValTrim)
+			
+		f.Intrinsic.Control.ElseIf(v.DataView.APS!dvAPS.RowCount,=,7)
+			F.data.dataTable.SetValue("dtKA",v.Local.iCnt,"seqRes",v.Local.sMaterial,"One",v.DataView.APS!dvAPS(0).SR!FieldValTrim,"Two",v.DataView.APS!dvAPS(1).SR!FieldValTrim,"Three",v.DataView.APS!dvAPS(2).SR!FieldValTrim,"Four",v.DataView.APS!dvAPS(3).SR!FieldValTrim,"Five",v.DataView.APS!dvAPS(4).SR!FieldValTrim,"Six",v.DataView.APS!dvAPS(5).SR!FieldValTrim,"Seven",v.DataView.APS!dvAPS(6).SR!FieldValTrim,"OneRuntime",v.DataView.APS!dvAPS(0).Runtime!FieldValTrim,"TwoRuntime",v.DataView.APS!dvAPS(1).Runtime!FieldValTrim,"ThreeRuntime",v.DataView.APS!dvAPS(2).Runtime!FieldValTrim,"FourRuntime",v.DataView.APS!dvAPS(3).Runtime!FieldValTrim,"FiveRuntime",v.DataView.APS!dvAPS(4).Runtime!FieldValTrim,"SixRuntime",v.DataView.APS!dvAPS(5).Runtime!FieldValTrim,"SevenRuntime",v.DataView.APS!dvAPS(6).Runtime!FieldValTrim)
+			
+		f.Intrinsic.Control.ElseIf(v.DataView.APS!dvAPS.RowCount,=,8)
+			F.data.dataTable.SetValue("dtKA",v.Local.iCnt,"seqRes",v.Local.sMaterial,"One",v.DataView.APS!dvAPS(0).SR!FieldValTrim,"Two",v.DataView.APS!dvAPS(1).SR!FieldValTrim,"Three",v.DataView.APS!dvAPS(2).SR!FieldValTrim,"Four",v.DataView.APS!dvAPS(3).SR!FieldValTrim,"Five",v.DataView.APS!dvAPS(4).SR!FieldValTrim,"Six",v.DataView.APS!dvAPS(5).SR!FieldValTrim,"Seven",v.DataView.APS!dvAPS(6).SR!FieldValTrim,"Eight",v.DataView.APS!dvAPS(7).SR!FieldValTrim,"OneRuntime",v.DataView.APS!dvAPS(0).Runtime!FieldValTrim,"TwoRuntime",v.DataView.APS!dvAPS(1).Runtime!FieldValTrim,"ThreeRuntime",v.DataView.APS!dvAPS(2).Runtime!FieldValTrim,"FourRuntime",v.DataView.APS!dvAPS(3).Runtime!FieldValTrim,"FiveRuntime",v.DataView.APS!dvAPS(4).Runtime!FieldValTrim,"SixRuntime",v.DataView.APS!dvAPS(5).Runtime!FieldValTrim,"SevenRuntime",v.DataView.APS!dvAPS(6).Runtime!FieldValTrim,"EightRuntime",v.DataView.APS!dvAPS(7).Runtime!FieldValTrim)
+			
+		f.Intrinsic.Control.ElseIf(v.DataView.APS!dvAPS.RowCount,=,9)
+			F.data.dataTable.SetValue("dtKA",v.Local.iCnt,"seqRes",v.Local.sMaterial,"One",v.DataView.APS!dvAPS(0).SR!FieldValTrim,"Two",v.DataView.APS!dvAPS(1).SR!FieldValTrim,"Three",v.DataView.APS!dvAPS(2).SR!FieldValTrim,"Four",v.DataView.APS!dvAPS(3).SR!FieldValTrim,"Five",v.DataView.APS!dvAPS(4).SR!FieldValTrim,"Six",v.DataView.APS!dvAPS(5).SR!FieldValTrim,"Seven",v.DataView.APS!dvAPS(6).SR!FieldValTrim,"Eight",v.DataView.APS!dvAPS(7).SR!FieldValTrim,"Nine",v.DataView.APS!dvAPS(8).SR!FieldValTrim,"OneRuntime",v.DataView.APS!dvAPS(0).Runtime!FieldValTrim,"TwoRuntime",v.DataView.APS!dvAPS(1).Runtime!FieldValTrim,"ThreeRuntime",v.DataView.APS!dvAPS(2).Runtime!FieldValTrim,"FourRuntime",v.DataView.APS!dvAPS(3).Runtime!FieldValTrim,"FiveRuntime",v.DataView.APS!dvAPS(4).Runtime!FieldValTrim,"SixRuntime",v.DataView.APS!dvAPS(5).Runtime!FieldValTrim,"SevenRuntime",v.DataView.APS!dvAPS(6).Runtime!FieldValTrim,"EightRuntime",v.DataView.APS!dvAPS(7).Runtime!FieldValTrim,"NineRuntime",v.DataView.APS!dvAPS(8).Runtime!FieldValTrim)
+			
+		f.Intrinsic.Control.ElseIf(v.DataView.APS!dvAPS.RowCount,>=,10)
+			F.data.dataTable.SetValue("dtKA",v.Local.iCnt,"seqRes",v.Local.sMaterial,"One",v.DataView.APS!dvAPS(0).SR!FieldValTrim,"Two",v.DataView.APS!dvAPS(1).SR!FieldValTrim,"Three",v.DataView.APS!dvAPS(2).SR!FieldValTrim,"Four",v.DataView.APS!dvAPS(3).SR!FieldValTrim,"Five",v.DataView.APS!dvAPS(4).SR!FieldValTrim,"Six",v.DataView.APS!dvAPS(5).SR!FieldValTrim,"Seven",v.DataView.APS!dvAPS(6).SR!FieldValTrim,"Eight",v.DataView.APS!dvAPS(7).SR!FieldValTrim,"Nine",v.DataView.APS!dvAPS(8).SR!FieldValTrim,"Ten",v.DataView.APS!dvAPS(9).SR!FieldValTrim,"OneRuntime",v.DataView.APS!dvAPS(0).Runtime!FieldValTrim,"TwoRuntime",v.DataView.APS!dvAPS(1).Runtime!FieldValTrim,"ThreeRuntime",v.DataView.APS!dvAPS(2).Runtime!FieldValTrim,"FourRuntime",v.DataView.APS!dvAPS(3).Runtime!FieldValTrim,"FiveRuntime",v.DataView.APS!dvAPS(4).Runtime!FieldValTrim,"SixRuntime",v.DataView.APS!dvAPS(5).Runtime!FieldValTrim,"SevenRuntime",v.DataView.APS!dvAPS(6).Runtime!FieldValTrim,"EightRuntime",v.DataView.APS!dvAPS(7).Runtime!FieldValTrim,"NineRuntime",v.DataView.APS!dvAPS(8).Runtime!FieldValTrim,"TenRuntime",v.DataView.APS!dvAPS(9).Runtime!FieldValTrim)
+		f.Intrinsic.Control.EndIf	
+
+	f.Intrinsic.Control.Next(v.Local.iCnt)	
+	
+	f.Intrinsic.String.Build("{0}\6262_dtKA_{1}.xml",v.Caller.GasDir,v.Caller.CompanyCode,v.Local.sFile)
+	F.Data.DataTable.SaveToXML("dtKA",0,True,V.Local.sFile)
+
+f.Intrinsic.Control.catch
+	
+	f.Intrinsic.String.Left(v.Ambient.ErrorDescription.Trim,850,v.Local.sDescription)
+	f.Intrinsic.String.Build("Insert into GCG_6262_Error (DateTimeOccur,Description) values (Now(),'{0} Sub: {1} {2}')",v.Ambient.ErrorNumber,v.Ambient.CurrentSubroutine,v.Local.sDescription.PSQLFriendly,v.Local.sSQL)
+	f.ODBC.Connection!con.Execute(v.Local.sSQL)	
+	f.Intrinsic.Control.CallSub("Unload")
+f.Intrinsic.Control.EndTry
+Program.Sub.Load.End
+
+Program.Sub.Comments.Start
+${$5$}$3.0.0.0$}$1
+${$6$}$bnguyen$}$20210215095212639$}$tqzwddZCkmoVRWHEL6DZymEEseDhOdziRGplcLpiNQ3wIgO0wmaNB+FNrG5qPYudluT/gcQ0VdQ=
+Program.Sub.Comments.End
